@@ -17,11 +17,13 @@ void imprimir_vector(const std::vector<int>& vector) {
         std::cout << "]" << std::endl;
 }
 
+
+// Struct Mano: Mano que guarda dados, vueltas, ganadores, probabilidades, etc
 struct Mano {
     std::vector<int> dados;
     int vueltasDisp;
-    int ganador1;
-    int ganador2;
+    int ganador1 = 0;
+    int ganador2 = 0;
     std::vector<int> aRelanzar;
     double probabilidad = 0.0;
 
@@ -33,31 +35,124 @@ struct Mano {
         imprimir_vector(aRelanzar);
         std::cout << " probabilidad =" << probabilidad << std::endl;
     }
+
+    void definir_ganadores() {
+        std::vector<int> frecuencia(7, 0), ganadores;
+
+        for (int dado: dados)
+            ++frecuencia[dado];
+        
+        int frecuenciaMayor = *std::max_element(frecuencia.begin() + 1, frecuencia.end());
+
+        if (frecuenciaMayor > 1) {
+            for (int i = 0; i <= 6; ++i)
+                if (frecuencia[i] == frecuenciaMayor)
+                    ganadores.push_back(i);
+        
+            ganador1 = ganadores[0];
+
+            if (ganadores.size() > 1)
+                ganador2 = ganadores[1];
+        }
+    }
+
+
+    void probabilidad_maximo() {
+        if (ganador1 != 0) {
+            for (size_t i = 0; i < dados.size(); ++i)
+                if (dados[i] != ganador1)
+                    aRelanzar.push_back(i);
+        
+            int n = aRelanzar.size();
+
+            if (vueltasDisp == 0)
+                probabilidad = pow(0.17, n);
+            else if (n == 1 && vueltasDisp == 1)
+                probabilidad = 0.33;
+            else if (n == 1 && vueltasDisp == 2)
+                probabilidad = 0.17;
+            else
+                probabilidad = 0.33 * pow(0.17, n - 1);
+        }
+    }
+
+    void probabilidad_numero(int val) {
+        if (val == ganador1 || val == ganador2) {
+            for (size_t i = 0; i < dados.size(); ++i)
+                if (dados[i] != val)
+                    aRelanzar.push_back(i);
+            int n = aRelanzar.size();
+            
+            if (vueltasDisp == 0)
+                probabilidad = pow(0.17, n);
+            else if (n == 1 && vueltasDisp == 1)
+                probabilidad = 0.33;
+            else if (n == 1 && vueltasDisp == 2)
+                probabilidad = 0.17;
+            else
+                probabilidad = 0.33 * pow(0.17, n - 1);
+        }
+    }
+
+    void probabilidad_full() {
+        if (ganador2 != 0) {
+            for (size_t i = 0; i < dados.size(); ++i)
+                if (dados[i] != ganador1 && dados[i] != ganador2)
+                    aRelanzar.push_back(i);
+            
+            if (vueltasDisp == 2 || vueltasDisp == 0)
+                probabilidad = 0.33;
+            else
+                probabilidad = 0.67;
+        } else if (ganador1 != 0) {
+            for (size_t i = 0; i < dados.size(); ++i)
+                if (dados[i] != ganador1)
+                    aRelanzar.push_back(i);
+
+            int n = aRelanzar.size();
+
+            if (n != 1) {
+                if (vueltasDisp == 0)
+                    probabilidad = pow(0.17, n);
+                else
+                    probabilidad = 0.33 * pow(0.17, n - 1);
+            }
+        }
+    }
+
+
+    void probabilidad_escalera() {
+        return;
+    }
+
 };
 
-
+// Mi jugador
 class Sanguche : public Jugador {
     private:
     std::string nombreEstudiante;
 
     public:
 
-    Sanguche(std::string nom = "Sanguche") : Jugador(nom) {
+    Sanguche() {
+        nombre = "Sanguche";
         nombreEstudiante = "Benjamin Mardones";
     }
 
     int jugar(const std::map<std::string, Marcador>& marcadores, const std::vector<Actuacion>& actuacionesPosibles, const std::vector<int>& dados, const Anotacion& resultadoPrevio) override {
 
+
+        
         marcadores.at(nombre).display();
 
+        // busca dormida
         for (size_t i = 0; i < actuacionesPosibles.size(); ++i)
             if (actuacionesPosibles[i].accion == "dormida") {
-                std::cout << "ME DORMI, mi mano es ";
-                imprimir_vector(dados);
-
                 return i;
             }
 
+
+        // busca la mayor jugada >= 30
         int max_jugada_mayor = 0;
         int opcion = -1;
 
@@ -65,8 +160,8 @@ class Sanguche : public Jugador {
             if (actuacionesPosibles[i].accion == "anotar") {
                 int puntaje = actuacionesPosibles[i].anotacion.puntos;
                 if (puntaje >= 30 && puntaje > max_jugada_mayor) {
-                max_jugada_mayor = puntaje;
-                opcion = i;
+                    max_jugada_mayor = puntaje;
+                    opcion = i;
                 }
             }
 
@@ -77,9 +172,9 @@ class Sanguche : public Jugador {
         }
 
         
-    // no hay buenas opciones de anotacion, hay que lanzar dados
+    
 
-const std::string RESET = "\033[0m";
+    const std::string RESET = "\033[0m";
     const std::string BOLD = "\033[1m";
     const std::string GREEN = "\033[32m";
     const std::string BLUE = "\033[34m";
@@ -173,138 +268,131 @@ const std::string RESET = "\033[0m";
       }
     }
     
-        std::vector<Mano> manos = manos_posibles(dados);
-        double max_probabilidad = 0.0;
+        // no hay buenas opciones de anotacion, hay que lanzar dados
 
-        std::cout << "mis manos posibles" << std::endl;
-        for (size_t i = 0; i < manos.size(); ++i) {
-            manos[i].display();
-            if (manos[i].probabilidad >= max_probabilidad) {
-                max_probabilidad = manos[i].probabilidad;
-                opcion = i;
+
+        // revisa las jugadas disponibles
+        bool puedo_lanzar = false;
+
+        for (size_t i = 0; i < actuacionesPosibles.size(); ++i)
+            if (actuacionesPosibles[i].accion == "lanzar") {
+                puedo_lanzar = true;
+                break;
+            }
+
+        std::vector<int> disponibles;
+
+        for (const auto& [juego, puntos] : marcadores.at(nombre).puntajes)
+            if (puntos == -1)
+                disponibles.push_back(prioridad(juego));
+
+        std::sort(disponibles.begin(), disponibles.end());
+
+        // genera la probabilidad de cada jugada
+
+        std::vector<std::vector<Mano>> matriz_manos = generar_manos(dados, disponibles.size());
+        for (size_t i = 0; i < disponibles.size(); ++i) {
+            if (disponibles[i] == 0) {
+                for (size_t j = 0; j < matriz_manos[i].size(); ++j)
+                    matriz_manos[i][j].probabilidad_escalera();
+            }
+            else if (disponibles[i] <= 6) {
+                for (size_t j = 0; j < matriz_manos[i].size(); ++j)
+                    matriz_manos[i][j].probabilidad_numero(disponibles[i]);
+            }
+            else if (disponibles[i] == 7) {
+                for (size_t j = 0; j < matriz_manos[i].size(); ++j)
+                    matriz_manos[i][j].probabilidad_full();
+            }
+            else if (disponibles[i] >= 8) {
+                for (size_t j = 0; j < matriz_manos[i].size(); ++j)
+                    matriz_manos[i][j].probabilidad_maximo();
             }
         }
 
-        std::cout << "==================================\n La mano con la mayor probabilidad es:\n";
-        manos[opcion].display();
-        std::cout << "elige tu opcion:" << std::endl;
-        std::cin >> opcion;
+        double probabilidad_max = 0.0;
+        Mano max_mano;
 
+        for (auto& manos : matriz_manos)
+            for (auto& mano : manos) {
+                if (mano.probabilidad >= probabilidad_max) {
+                    probabilidad_max = mano.probabilidad;
+                    max_mano = mano;
+                }
+            }
+
+        std::cout << "Mejores chances" << std::endl;
+        max_mano.display();
+        std::cin >> opcion;
         return opcion;
     }
 
-    /*std::vector<Mano> manos_posibles(const std::vector<int>& dados) {
-        std::vector<Mano> result;
-        int n = dados.size();
+    std::vector<std::vector<Mano>> generar_manos (const std::vector<int> dados, int cant) {
+        std::vector<std::vector<Mano>> result;
 
-        //no vuelta
-        result.push_back(definir_ganadores(dados, 2));
+        for (int i = 0; i < cant; ++i) {
+            std::vector<Mano> manos;
 
-        //una vuelta
-        for (int i = 0; i < n; ++i) {
-            std::vector<int> nuevo = dados;
-            nuevo[i] = 7 - nuevo[i];
-            result.push_back(definir_ganadores(nuevo, 1));
-        }
+        
+            Mano nuevo;
+            nuevo.dados = dados;
+            nuevo.vueltasDisp = 2;
+            nuevo.definir_ganadores();
 
-        //dos vueltas
-        for (int i = 0; i < n; ++i)
-            for (int j = i + 1; j < n; j++) {
-                std::vector<int> nuevo = dados;
-                nuevo[i] = 7 - nuevo[i];
-                nuevo[j] = 7 - nuevo[j];
+            manos.push_back(nuevo);
 
-                result.push_back(definir_ganadores(nuevo, 0));
+            for (int i = 0; i < 5; ++i) {
+                Mano nuevo;
+                nuevo.dados = dados;
+                nuevo.dados[i] = 7 - nuevo.dados[i];
+                nuevo.vueltasDisp = 1;
+                nuevo.definir_ganadores();
+
+                manos.push_back(nuevo);
+            }
+
+            for (int i = 0; i < 5; ++i)
+                for (int j = i + 1; j < 5; ++j) {
+                    Mano nuevo;
+                    nuevo.dados = dados;
+                    nuevo.dados[i] = 7 - nuevo.dados[i];
+                    nuevo.dados[j] = 7 - nuevo.dados[j];
+                    nuevo.vueltasDisp = 0;
+                    nuevo.definir_ganadores();
+
+                    manos.push_back(nuevo);
+                }
+
+            result.push_back(manos);
         }
 
         return result;
     }
-*/
-    void definir_ganadores(Mano& m) {
-        std::vector<int> frecuencia(7, 0), ganadores;
 
-        m.ganador1 = 0;
-        m.ganador2 = 0;
-
-        for (int dado: m.dados)
-            ++frecuencia[dado];
-        
-        int frecuenciaMayor = *std::max_element(frecuencia.begin() + 1, frecuencia.end());
-
-        if (frecuenciaMayor > 1) {
-            for (int i = 0; i <= 6; ++i)
-                if (frecuencia[i] == frecuenciaMayor)
-                    ganadores.push_back(i);
-        
-            m.ganador1 = ganadores[0];
-
-            if (ganadores.size() > 1)
-                m.ganador2 = ganadores[1];
-        }
-    }
-
-    void probabilidad_maximo(Mano &m) {
-        if (m.ganador1 != 0) {
-            for (size_t i = 0; i < m.dados.size(); ++i)
-                if (m.dados[i] != m.ganador1)
-                    m.aRelanzar.push_back(i);
-        
-            int n = m.aRelanzar.size();
-            if (m.vueltasDisp == 0)
-                m.probabilidad = pow(0.17, n);
-            else if (n == 1 && m.vueltasDisp == 1)
-                m.probabilidad = 0.33;
-            else if (n == 1 && m.vueltasDisp == 2)
-                m.probabilidad = 0.17;
-            else
-                m.probabilidad = 0.33 * pow(0.17, n - 1);
-        }
-    }
-    /* Probabilidad_numero: calcula la probabilidad de que una mano maximice el valor val,
-    si val no coincide con ninguno de los dos ganadores, la descarta (probabilidad 0)*/
-    void probabilidad_numero(Mano& m, int val) {
-        if (val == m.ganador1 || val == m.ganador2) {
-            for (size_t i = 0; i < m.dados.size(); ++i)
-                if (m.dados[i] != val)
-                    m.aRelanzar.push_back(i);
-            int n = m.aRelanzar.size();
-            
-            if (m.vueltasDisp == 0)
-                m.probabilidad = pow(0.17, n);
-            else if (n == 1 && m.vueltasDisp == 1)
-                m.probabilidad = 0.33;
-            else if (n == 1 && m.vueltasDisp == 2)
-                m.probabilidad = 0.17;
-            else
-                m.probabilidad = 0.33 * pow(0.17, n - 1);
-        }
-    }
-
-
-    /* probabilidad full: calcula la probabilidad de que una mano obtenga un full*/
-    void probabilidad_full(Mano& m) {
-        if (m.ganador2 != 0) {
-            for (size_t i = 0; i < m.dados.size(); ++i)
-                if (m.dados[i] != m.ganador1 && m.dados[i] != m.ganador2)
-                    m.aRelanzar.push_back(i);
-            
-            if (m.vueltasDisp == 2 || m.vueltasDisp == 0)
-                m.probabilidad = 0.33;
-            else
-                m.probabilidad = 0.67;
-        } else
-            m.probabilidad = 0.0;
-    }
-
-    void probabilidad_escalera(Mano& m) {
-        if (m.ganador1 = 0) {
-            std::vector<int> frecuencia(7, 0);
-
-            for (int dado : m.dados)
-                ++frecuencia[dado];
-            
-            
-        }
+    int prioridad(std::string juego) {
+        if (juego == "escalera")
+            return 0;
+        if (juego == "balas")
+            return 1;
+        if (juego == "tontos")
+            return 2;
+        if (juego == "trenes")
+            return 3;
+        if (juego == "cuadras")
+            return 4;
+        if (juego == "quinas")
+            return 5;
+        if (juego == "senas")
+            return 6;
+        if (juego == "full")
+            return 7;
+        if (juego == "poker")
+            return 8;
+        if (juego == "grande") 
+            return 9;
+        if (juego == "grande2")
+            return 10;
+        return -1;
     }
 
     std::string getNombreEstudiante() const {
