@@ -58,6 +58,8 @@ struct Mano {
 
 
     void probabilidad_maximo() {
+        probabilidad = 0.0;
+        aRelanzar.clear();
         if (ganador1 != 0) {
             for (size_t i = 0; i < dados.size(); ++i)
                 if (dados[i] != ganador1)
@@ -77,12 +79,15 @@ struct Mano {
     }
 
     void probabilidad_numero(int val) {
+        probabilidad = 0.0;
+        aRelanzar.clear();
         if (val == ganador1 || val == ganador2) {
             for (size_t i = 0; i < dados.size(); ++i)
                 if (dados[i] != val)
                     aRelanzar.push_back(i);
-            int n = aRelanzar.size();
             
+            int n = aRelanzar.size();
+
             if (vueltasDisp == 0)
                 probabilidad = pow(0.17, n);
             else if (n == 1 && vueltasDisp == 1)
@@ -95,6 +100,8 @@ struct Mano {
     }
 
     void probabilidad_full() {
+        probabilidad = 0.0;
+        aRelanzar.clear();
         if (ganador2 != 0) {
             for (size_t i = 0; i < dados.size(); ++i)
                 if (dados[i] != ganador1 && dados[i] != ganador2)
@@ -122,12 +129,17 @@ struct Mano {
 
 
     void probabilidad_escalera() {
+        probabilidad = 0.0;
+        aRelanzar.clear();
         return;
     }
 
 };
 
-// Mi jugador
+//=====================================================================================================================
+//=====================================================================================================================
+//=====================================================================================================================
+//=====================================================================================================================
 class Sanguche : public Jugador {
     private:
     std::string nombreEstudiante;
@@ -142,9 +154,6 @@ class Sanguche : public Jugador {
     int jugar(const std::map<std::string, Marcador>& marcadores, const std::vector<Actuacion>& actuacionesPosibles, const std::vector<int>& dados, const Anotacion& resultadoPrevio) override {
 
 
-        
-        marcadores.at(nombre).display();
-
         // busca dormida
         for (size_t i = 0; i < actuacionesPosibles.size(); ++i)
             if (actuacionesPosibles[i].accion == "dormida") {
@@ -152,134 +161,57 @@ class Sanguche : public Jugador {
             }
 
 
-        // busca la mayor jugada >= 30
-        int max_jugada_mayor = 0;
-        int opcion = -1;
+        std::vector<int> indicesAnotar;
 
         for (size_t i = 0; i < actuacionesPosibles.size(); ++i)
-            if (actuacionesPosibles[i].accion == "anotar") {
-                int puntaje = actuacionesPosibles[i].anotacion.puntos;
-                if (puntaje >= 30 && puntaje > max_jugada_mayor) {
-                    max_jugada_mayor = puntaje;
+            if (actuacionesPosibles[i].accion == "anotar")
+                indicesAnotar.push_back(i);
+
+        
+        // busca jugadas de mano
+        int max_jugada = 0;
+        int opcion = -1;
+
+        for (int i : indicesAnotar) {
+            const auto& a = actuacionesPosibles[i].anotacion;
+
+            if (a.juego == "grande" || a.juego == "grande2")
+                return i;
+            
+            if ((a.juego == "escalera" && a.puntos == 25) || (a.juego == "full" && a.puntos == 35) || (a.juego == "poquer" && a.puntos == 45))
+                if (a.puntos > max_jugada) {
+                    max_jugada = a.puntos;
                     opcion = i;
                 }
-            }
+        }
+
 
         if (opcion != -1) {
-            std::cout << "elegi una jugada alta, mi mano es ";
-            imprimir_vector(dados);
+            std::cout << "me salio jugada de mano" << std::endl;
+            return opcion;
+        }
+        
+        
+        // busca jugadas grandes
+
+        for (int i : indicesAnotar) {
+            int puntaje = actuacionesPosibles[i].anotacion.puntos;
+
+            if (puntaje >= 30 && puntaje > max_jugada) {
+                max_jugada = puntaje;
+                opcion = i;
+            }
+        }
+
+        if (opcion != -1) {
+            std::cout << "me salio una jugada grande" << std::endl;
             return opcion;
         }
 
-        
-    
-
-    const std::string RESET = "\033[0m";
-    const std::string BOLD = "\033[1m";
-    const std::string GREEN = "\033[32m";
-    const std::string BLUE = "\033[34m";
-    const std::string RED = "\033[31m";
-    const std::string YELLOW = "\033[33m";
-
-    std::cout << "\n"
-              << BOLD << "========================================" << RESET
-              << std::endl;
-    std::cout << BOLD << "TURNO DE: " << GREEN << nombre << RESET << std::endl;
-    std::cout << BOLD << "Dados actuales: " << YELLOW;
-    for (int d : dados)
-      std::cout << "[" << d << "] ";
-    std::cout << RESET << std::endl;
-
-    std::cout << "         Index: ";
-    for (int i = 0; i < 5; ++i)
-      std::cout << " (" << i << ") ";
-    std::cout << std::endl;
-
-    std::cout << BOLD << "Intento: " << intento
-              << " | Lanzamiento: " << lanzamiento << RESET << std::endl;
-    std::cout << BOLD << "========================================" << RESET
-              << std::endl;
-
-    // Categorize options
-    std::vector<int> scoringIdx;
-    std::vector<int> rerollIdx;
-    std::vector<int> otherIdx;
-
-    for (size_t i = 0; i < actuacionesPosibles.size(); ++i) {
-      const std::string &acc = actuacionesPosibles[i].accion;
-      if (acc == "anotar" || acc == "tachar" || acc == "dormida" ||
-          acc == "sobre") {
-        scoringIdx.push_back(i);
-      } else if (acc == "lanzar") {
-        rerollIdx.push_back(i);
-      } else {
-        otherIdx.push_back(i);
-      }
-    }
-
-    if (!scoringIdx.empty()) {
-      std::cout << BOLD << BLUE << "\n--- OPCIONES DE ANOTACIÓN ---" << RESET
-                << std::endl;
-      for (int i : scoringIdx) {
-        const auto &a = actuacionesPosibles[i];
-        if (a.accion == "dormida") {
-          std::cout << "[" << i << "] " << GREEN << BOLD
-                    << "DORMIDA! (Gana el juego)" << RESET << std::endl;
-        } else if (a.accion == "sobre") {
-          std::cout << "[" << i << "] " << BLUE << BOLD
-                    << "RESERVAR (Sobre): " << RESET << BOLD
-                    << a.anotacion.juego << RESET << " (+" << a.anotacion.puntos
-                    << " pts)" << std::endl;
-        } else {
-          bool esTachar = (a.anotacion.puntos == 0);
-          std::cout << "[" << i << "] " << (esTachar ? RED : GREEN)
-                    << (esTachar ? "Tachar " : "Anotar ") << BOLD
-                    << a.anotacion.juego << RESET << " (+" << a.anotacion.puntos
-                    << " pts)" << std::endl;
-        }
-      }
-    }
-
-    if (!rerollIdx.empty()) {
-      std::cout << BOLD << YELLOW << "\n--- OPCIONES DE RELANZAMIENTO ---"
-                << RESET << std::endl;
-      for (int i : rerollIdx) {
-        const auto &a = actuacionesPosibles[i];
-        std::cout << "[" << i << "] " << BLUE << "Relanzar índices: " << RESET
-                  << "[ ";
-        for (int d : a.indiceDados)
-          std::cout << d << " ";
-        std::cout << "]" << (a.seRespeta ? GREEN + " (Respetando)" + RESET : "")
-                  << std::endl;
-      }
-    }
-
-    if (!otherIdx.empty()) {
-      std::cout << BOLD << RED << "\n--- OTRAS OPCIONES ---" << RESET
-                << std::endl;
-      for (int i : otherIdx) {
-        const auto &a = actuacionesPosibles[i];
-        if (a.accion == "nada") {
-          std::cout << "[" << i << "] " << RED << BOLD
-                    << "NO HACER NADA (Pasar)" << RESET << std::endl;
-        } else {
-          std::cout << "[" << i << "] " << a.accion << std::endl;
-        }
-      }
-    }
-    
         // no hay buenas opciones de anotacion, hay que lanzar dados
 
 
         // revisa las jugadas disponibles
-        bool puedo_lanzar = false;
-
-        for (size_t i = 0; i < actuacionesPosibles.size(); ++i)
-            if (actuacionesPosibles[i].accion == "lanzar") {
-                puedo_lanzar = true;
-                break;
-            }
-
         std::vector<int> disponibles;
 
         for (const auto& [juego, puntos] : marcadores.at(nombre).puntajes)
@@ -288,88 +220,161 @@ class Sanguche : public Jugador {
 
         std::sort(disponibles.begin(), disponibles.end());
 
-        // genera la probabilidad de cada jugada
+        std::vector<int> indicesRelanzamiento;
 
-        std::vector<std::vector<Mano>> matriz_manos = generar_manos(dados, disponibles.size());
-        for (size_t i = 0; i < disponibles.size(); ++i) {
-            if (disponibles[i] == 0) {
-                for (size_t j = 0; j < matriz_manos[i].size(); ++j)
-                    matriz_manos[i][j].probabilidad_escalera();
+        for (size_t i = 0; i < actuacionesPosibles.size(); ++i) {
+            if (actuacionesPosibles[i].accion == "lanzar")
+                indicesRelanzamiento.push_back(i);
+        }
+
+        if (indicesRelanzamiento.size() > 0) {
+
+            // genera la probabilidad de cada jugada
+
+            std::vector<Mano> manos_posibles = generar_manos(dados);
+            Mano max_mano;
+            int max_jugada = 0;
+
+
+            for (size_t i = 0; i < disponibles.size(); ++i) {
+                if (disponibles[i] == 0) {
+                    for (auto& mano : manos_posibles)
+                        mano.probabilidad_escalera();
+                }
+                else if (disponibles[i] >= 1 && disponibles[i] <= 6) {
+                    for (auto& mano : manos_posibles) {
+                        mano.probabilidad_numero(disponibles[i]);
+                    }
+                        
+                }
+                else if (disponibles[i] == 7) {
+                    for (auto& mano : manos_posibles) {
+                        mano.probabilidad_full();
+                    }
+                }
+                else if (disponibles[i] >= 8) {
+                    for (auto& mano : manos_posibles) {
+                        mano.probabilidad_maximo();
+                    }
+                }
+
+                for (auto& mano: manos_posibles)
+                    if (mano.probabilidad >= max_mano.probabilidad) {
+                        max_jugada = disponibles[i];
+                        max_mano = mano;
+                    }
             }
-            else if (disponibles[i] <= 6) {
-                for (size_t j = 0; j < matriz_manos[i].size(); ++j)
-                    matriz_manos[i][j].probabilidad_numero(disponibles[i]);
-            }
-            else if (disponibles[i] == 7) {
-                for (size_t j = 0; j < matriz_manos[i].size(); ++j)
-                    matriz_manos[i][j].probabilidad_full();
-            }
-            else if (disponibles[i] >= 8) {
-                for (size_t j = 0; j < matriz_manos[i].size(); ++j)
-                    matriz_manos[i][j].probabilidad_maximo();
+
+            for (int i : indicesRelanzamiento)
+                if (actuacionesPosibles[i].indiceDados == max_mano.aRelanzar) {
+                    return i;
+                }
+        }
+
+
+        // busca alguna jugada numerica >= 4*numero
+        
+        for (int i : indicesAnotar) {
+            const auto& a = actuacionesPosibles[i].anotacion;
+
+
+            if (prioridad(a.juego) >= 1 && prioridad(a.juego) <= 6)
+                if (a.puntos >= 4*prioridad(a.juego) && a.puntos > max_jugada) {
+                    max_jugada = a.puntos;
+                    opcion = i;
+                }
+        }
+
+        if (opcion != -1) {
+            std::cout << "me salio una jugada numerica alta" << std::endl;
+            return opcion;
+        }
+
+
+        // busca escalera
+
+        for (int i : indicesAnotar) {
+            if (actuacionesPosibles[i].anotacion.juego == "escalera") {
+                std::cout << "tengo escalera" << std::endl;
+                return i;
             }
         }
 
-        double probabilidad_max = 0.0;
-        Mano max_mano;
+        // busca alguna jugada numerica >= 3* numero en el rango de 1 y 4
 
-        for (auto& manos : matriz_manos)
-            for (auto& mano : manos) {
-                if (mano.probabilidad >= probabilidad_max) {
-                    probabilidad_max = mano.probabilidad;
-                    max_mano = mano;
+
+        for (int i : indicesAnotar) {
+            const auto& a = actuacionesPosibles[i].anotacion;
+
+            if (prioridad(a.juego) >= 1 && prioridad(a.juego) <= 4) {
+                if (a.puntos >= 3 * prioridad(a.juego) && a.puntos > max_jugada) {
+                    max_jugada = a.puntos;
+                    opcion = i;
                 }
             }
+        }
 
-        std::cout << "Mejores chances" << std::endl;
-        max_mano.display();
-        std::cin >> opcion;
-        return opcion;
+        if (opcion != -1) {
+            std::cout << "me salio una jugada numerica mas o menos" << std::endl;
+            return opcion;
+        }
+        
+        for (size_t i = 0; i < actuacionesPosibles.size(); ++i) 
+            if (actuacionesPosibles[i].accion == "nada") {
+                std::cout << "no me salio nada bueno, paso" << std::endl;
+                return i;
+            }
+
+
+        // elige la mas pequeña
+        
+        for (int i : indicesAnotar) {
+            if (prioridad(actuacionesPosibles[i].anotacion.juego) == disponibles[0]) {
+                std::cout << "voy a sacrificar la jugada mas pequeña " << disponibles[0] << std::endl;
+                return i;
+            }
+        }
+  
+
+        return actuacionesPosibles.size() - 1;
     }
 
-    std::vector<std::vector<Mano>> generar_manos (const std::vector<int> dados, int cant) {
-        std::vector<std::vector<Mano>> result;
+    std::vector<Mano> generar_manos(const std::vector<int>& dados) {
+        std::vector<Mano> manos;
+  
+        Mano nuevo;
+        nuevo.dados = dados;
+        nuevo.vueltasDisp = 2;
+        nuevo.definir_ganadores();
 
-        for (int i = 0; i < cant; ++i) {
-            std::vector<Mano> manos;
+        manos.push_back(nuevo);
 
-        
+        for (int i = 0; i < 5; ++i) {
             Mano nuevo;
             nuevo.dados = dados;
-            nuevo.vueltasDisp = 2;
+            nuevo.dados[i] = 7 - nuevo.dados[i];
+            nuevo.vueltasDisp = 1;
             nuevo.definir_ganadores();
 
-            manos.push_back(nuevo);
+                manos.push_back(nuevo);
+        }
 
-            for (int i = 0; i < 5; ++i) {
+        for (int i = 0; i < 5; ++i)
+            for (int j = i + 1; j < 5; ++j) {
                 Mano nuevo;
                 nuevo.dados = dados;
                 nuevo.dados[i] = 7 - nuevo.dados[i];
-                nuevo.vueltasDisp = 1;
+                nuevo.dados[j] = 7 - nuevo.dados[j];
+                nuevo.vueltasDisp = 0;
                 nuevo.definir_ganadores();
 
                 manos.push_back(nuevo);
             }
 
-            for (int i = 0; i < 5; ++i)
-                for (int j = i + 1; j < 5; ++j) {
-                    Mano nuevo;
-                    nuevo.dados = dados;
-                    nuevo.dados[i] = 7 - nuevo.dados[i];
-                    nuevo.dados[j] = 7 - nuevo.dados[j];
-                    nuevo.vueltasDisp = 0;
-                    nuevo.definir_ganadores();
-
-                    manos.push_back(nuevo);
-                }
-
-            result.push_back(manos);
-        }
-
-        return result;
+        return manos;
     }
 
-    int prioridad(std::string juego) {
+    int prioridad(const std::string& juego) {
         if (juego == "escalera")
             return 0;
         if (juego == "balas")
