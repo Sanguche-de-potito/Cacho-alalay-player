@@ -131,7 +131,60 @@ struct Mano {
     void probabilidad_escalera() {
         probabilidad = 0.0;
         aRelanzar.clear();
-        return;
+
+        std::vector<std::vector<int>> escalera(3);
+
+        std::vector<int> frecuencia(7, 0), ganadores;
+
+        for (int i = 0; i < dados.size(); ++i)
+            if (dados[i] == 6)
+                escalera[0].push_back(i);
+            else if (frecuencia[dados[i]] > 0)
+                escalera[0].push_back(i);
+            else
+                ++frecuencia[dados[i]];
+
+        std::fill(frecuencia.begin() + 1, frecuencia.end(), 0);
+
+        for (int i = 0; i < dados.size(); ++i)
+            if (dados[i] == 1)
+                escalera[1].push_back(i);
+            else if (frecuencia[dados[i]] > 0)
+                escalera[1].push_back(i);
+            else
+                ++frecuencia[dados[i]];
+        
+        std::fill(frecuencia.begin() + 1, frecuencia.end(), 0);
+
+        for (int i = 0; i < dados.size(); ++i)
+            if (dados[i] == 2)
+                escalera[2].push_back(i);
+            else if (frecuencia[dados[i]] > 0)
+                escalera[2].push_back(i);
+            else
+                ++frecuencia[dados[i]];
+
+        int tamaños[3] = {escalera[0].size(), escalera[1].size(), escalera[2].size()};
+        int min = 5, indice = 0;
+
+        for (int i = 0; i < 3; ++i)
+            if (tamaños[i] <= min) {
+                min = tamaños[i];
+                indice = i;
+            }
+
+        aRelanzar = escalera[indice];
+
+        int n = aRelanzar.size();
+
+        if (vueltasDisp == 0)
+            probabilidad = pow(0.17, n);
+        else if (n == 1 && vueltasDisp == 2)
+            probabilidad = 0.17;
+        else if (n == 1 && vueltasDisp == 1)
+            probabilidad = 0.33;
+        else
+            probabilidad = 0.33 * pow(0.17, n - 1);
     }
 
 };
@@ -164,7 +217,7 @@ class Sanguche : public Jugador {
         std::vector<int> indicesAnotar;
 
         for (size_t i = 0; i < actuacionesPosibles.size(); ++i)
-            if (actuacionesPosibles[i].accion == "anotar")
+            if (actuacionesPosibles[i].accion == "anotar" || actuacionesPosibles[i].accion == "tachar")
                 indicesAnotar.push_back(i);
 
         
@@ -267,6 +320,11 @@ class Sanguche : public Jugador {
 
             for (int i : indicesRelanzamiento)
                 if (actuacionesPosibles[i].indiceDados == max_mano.aRelanzar) {
+                    std::cout << "tengo los dados: ";
+                    imprimir_vector(dados);
+                    std::cout << "y voy a relanzar los dados: ";
+                    imprimir_vector(max_mano.aRelanzar);
+                    std::cout << "buscando la jugada " << prioridad_inversa(max_jugada) << std::endl;
                     return i;
                 }
         }
@@ -328,15 +386,22 @@ class Sanguche : public Jugador {
 
         // elige la mas pequeña
         
+        std::cout << "no tengo opciones, voy a sacrificar la jugada mas pequeña " << prioridad_inversa(disponibles[0]) << std::endl;
+
         for (int i : indicesAnotar) {
             if (prioridad(actuacionesPosibles[i].anotacion.juego) == disponibles[0]) {
-                std::cout << "voy a sacrificar la jugada mas pequeña " << disponibles[0] << std::endl;
-                return i;
+                opcion = i;
             }
         }
   
 
-        return actuacionesPosibles.size() - 1;
+        std::cout << opcion << std::endl;
+        if (opcion == -1) {
+            for (size_t i = 0; i < actuacionesPosibles.size(); ++i)
+                actuacionesPosibles[i].display();
+            std::cin >> opcion;
+        }
+        return opcion;
     }
 
     std::vector<Mano> generar_manos(const std::vector<int>& dados) {
@@ -398,6 +463,48 @@ class Sanguche : public Jugador {
         if (juego == "grande2")
             return 10;
         return -1;
+    }
+
+    std::string prioridad_inversa(int num) {
+        switch (num)
+        {
+        case 0:
+            return "escalera";
+            break;
+        case 1:
+            return "balas";
+            break;
+        case 2:
+            return "tontos";
+            break;
+        case 3:
+            return "trenes";
+            break;
+        case 4:
+            return "cuadras";
+            break;
+        case 5:
+            return "quinas";
+            break;
+        case 6:
+            return "senas";
+            break;
+        case 7:
+            return "full";
+            break;
+        case 8:
+            return "poker";
+            break;
+        case 9:
+            return "grande";
+            break;
+        case 10:
+            return "grande";
+            break;
+        default:
+            return NULL;
+            break;
+        }
     }
 
     std::string getNombreEstudiante() const {
