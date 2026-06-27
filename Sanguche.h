@@ -10,13 +10,6 @@
 #include "Actuacion.h"
 
 
-void imprimir_vector(const std::vector<int>& vector) {
-        std::cout << "[ ";
-        for (size_t i = 0; i < vector.size(); ++i)
-            std::cout << vector[i] << (i == vector.size() - 1 ? ' ' : ',');
-        std::cout << "]" << std::endl;
-}
-
 // Struct Mano: Mano que guarda dados, vueltas, ganadores, probabilidades, etc
 struct Mano {
     std::vector<int> dados;
@@ -27,12 +20,16 @@ struct Mano {
     double probabilidad = 0.0;
 
     void display() {
-        imprimir_vector(dados);
-        std::cout << " vueltas disponibles = " << vueltasDisp;
-        std::cout << "\n ganador1 = " << ganador1 << "\n ganador2 = " << ganador2;
-        std::cout << "\n a relanzar:";
-        imprimir_vector(aRelanzar);
-        std::cout << " probabilidad =" << probabilidad << std::endl;
+        std::cout << "DADOS = [ ";
+        for (size_t i = 0; i < dados.size(); ++i)
+            std::cout << dados[i] << (i == dados.size() - 1 ? ' ' : ',');
+        std::cout << "]\nVUELTAS DISPONIBLES = " << vueltasDisp << std::endl;
+        std::cout << "GANADOR 1 = " << ganador1 << std::endl;
+        std::cout << "GANADOR 2 = " << ganador2 << std::endl; 
+        std::cout << "A RELANZAR = [ ";
+        for (size_t i = 0; i < aRelanzar.size(); ++i)
+            std::cout << aRelanzar[i] << (i == aRelanzar.size() - 1 ? ' ' : ',');
+        std::cout << "]\nPROBABILIDAD = " << probabilidad << std::endl;
     }
 
     void definir_ganadores() {
@@ -59,17 +56,17 @@ struct Mano {
     void probabilidad_maximo() {
         probabilidad = 0.0;
         aRelanzar.clear();
-        if (ganador1 != 0) {
+        if (ganador1) {
             for (size_t i = 0; i < dados.size(); ++i)
                 if (dados[i] != ganador1)
                     aRelanzar.push_back(i);
         
             int n = aRelanzar.size();
 
-            if (n == 0)
+            if (!n)
                 return;
 
-            if (vueltasDisp == 0)
+            if (!vueltasDisp)
                 probabilidad = pow(0.17, n);
             else if (n == 1 && vueltasDisp == 1)
                 probabilidad = 0.33;
@@ -90,10 +87,10 @@ struct Mano {
             
             int n = aRelanzar.size();
 
-            if (n == 0)
+            if (!n)
                 return;
         
-            if (vueltasDisp == 0)
+            if (!vueltasDisp)
                 probabilidad = pow(0.17, n);
             else if (n == 1 && vueltasDisp == 1)
                 probabilidad = 0.33;
@@ -107,12 +104,12 @@ struct Mano {
     void probabilidad_full() {
         probabilidad = 0.0;
         aRelanzar.clear();
-        if (ganador2 != 0) {
+        if (ganador2) {
             for (size_t i = 0; i < dados.size(); ++i)
                 if (dados[i] != ganador1 && dados[i] != ganador2)
                     aRelanzar.push_back(i);
             
-            if (vueltasDisp == 2 || vueltasDisp == 0)
+            if (vueltasDisp == 2 || !vueltasDisp)
                 probabilidad = 0.33;
             else
                 probabilidad = 0.67;
@@ -123,7 +120,7 @@ struct Mano {
 
             int n = aRelanzar.size();
 
-            if (n == 0)
+            if (!n)
                 return;
 
             if (n != 1) {
@@ -144,7 +141,7 @@ struct Mano {
 
         std::vector<int> frecuencia(7, 0), ganadores;
 
-        for (int i = 0; i < dados.size(); ++i)
+        for (size_t i = 0; i < dados.size(); ++i)
             if (dados[i] == 6)
                 escalera[0].push_back(i);
             else if (frecuencia[dados[i]] > 0)
@@ -154,7 +151,7 @@ struct Mano {
 
         std::fill(frecuencia.begin() + 1, frecuencia.end(), 0);
 
-        for (int i = 0; i < dados.size(); ++i)
+        for (size_t i = 0; i < dados.size(); ++i)
             if (dados[i] == 1)
                 escalera[1].push_back(i);
             else if (frecuencia[dados[i]] > 0)
@@ -164,7 +161,7 @@ struct Mano {
         
         std::fill(frecuencia.begin() + 1, frecuencia.end(), 0);
 
-        for (int i = 0; i < dados.size(); ++i)
+        for (size_t i = 0; i < dados.size(); ++i)
             if (dados[i] == 2)
                 escalera[2].push_back(i);
             else if (frecuencia[dados[i]] > 0)
@@ -172,7 +169,7 @@ struct Mano {
             else
                 ++frecuencia[dados[i]];
 
-        int tamaños[3] = {escalera[0].size(), escalera[1].size(), escalera[2].size()};
+        int tamaños[3] = {(int)escalera[0].size(), (int)escalera[1].size(), (int)escalera[2].size()};
         int min = 5, indice = 0;
 
         for (int i = 0; i < 3; ++i)
@@ -185,10 +182,10 @@ struct Mano {
 
         int n = aRelanzar.size();
 
-        if (n == 0)
+        if (!n)
             return;
 
-        if (vueltasDisp == 0)
+        if (!vueltasDisp)
             probabilidad = pow(0.17, n);
         else if (n == 1 && vueltasDisp == 2)
             probabilidad = 0.17;
@@ -209,9 +206,7 @@ class Sanguche : public Jugador {
     std::string nombreEstudiante;
 
     public:
-
-    Sanguche() {
-        nombre = "Sanguche";
+    Sanguche() : Jugador("Sanguche") {
         nombreEstudiante = "Benjamin Mardones";
     }
 
@@ -219,10 +214,9 @@ class Sanguche : public Jugador {
 
         // busca dormida
         for (size_t i = 0; i < actuacionesPosibles.size(); ++i)
-            if (actuacionesPosibles[i].accion == "dormida") {
+            if (actuacionesPosibles[i].accion == "dormida")
                 return i;
-            }
-
+            
         std::vector<int> indicesAnotar;
 
         for (size_t i = 0; i < actuacionesPosibles.size(); ++i)
@@ -238,7 +232,6 @@ class Sanguche : public Jugador {
 
             if (a.juego == "grande" && a.puntos != 0)
                 return i;
-            
             
             if ((a.juego == "escalera" && a.puntos == 25) || (a.juego == "full" && a.puntos == 35) || (a.juego == "poquer" && a.puntos == 45))
                 if (a.puntos > max_auxiliar) {
@@ -284,7 +277,6 @@ class Sanguche : public Jugador {
 
             if (a.juego == "escalera" && a.puntos > 0) 
                 return i;
-            
         }
 
         // jugada numerica >= 4 * numero rango 1 y 4
@@ -317,7 +309,7 @@ class Sanguche : public Jugador {
                 indicesRelanzamiento.push_back(i);
         }
 
-        if (indicesRelanzamiento.size() > 0) {
+        if (indicesRelanzamiento.size()) {
             // genera la probabilidad de cada jugada
             std::vector<Mano> manos_posibles = generar_manos(dados);
             Mano max_mano;
@@ -349,14 +341,14 @@ class Sanguche : public Jugador {
         }
 
         // PARTE MALA: NO HAY JUGADAS BUENAS
-
         // busca alguna jugada numerica >= 3* numero en el rango de 1 y 4 y se queda con la mas pequeña
         int min_auxiliar = 50;
 
         for (int i : indicesAnotar) {
             const auto& a = actuacionesPosibles[i].anotacion;
+            int n = numerico(a.juego);
 
-            if (numerico(a.juego) != 0 && numerico(a.juego) <= 4 && a.puntos >= 3 * numerico(a.juego)) 
+            if (n != 0 && n <= 4 && a.puntos >= 3 * n) 
                 if (a.puntos < min_auxiliar) {
                     min_auxiliar = a.puntos;
                     opcion = i;
@@ -396,7 +388,7 @@ class Sanguche : public Jugador {
 
         manos.push_back(nuevo);
 
-        for (int i = 0; i < 5; ++i) {
+        for (size_t i = 0; i < dados.size(); ++i) {
             Mano nuevo;
             nuevo.dados = dados;
             nuevo.dados[i] = 7 - nuevo.dados[i];
@@ -406,8 +398,8 @@ class Sanguche : public Jugador {
             manos.push_back(nuevo);
         }
 
-        for (int i = 0; i < 5; ++i)
-            for (int j = i + 1; j < 5; ++j) {
+        for (size_t i = 0; i < dados.size(); ++i)
+            for (size_t j = i + 1; j < dados.size(); ++j) {
                 Mano nuevo;
                 nuevo.dados = dados;
                 nuevo.dados[i] = 7 - nuevo.dados[i];
@@ -462,8 +454,7 @@ class Sanguche : public Jugador {
     }
     
     std::string prioridad_inversa(int num) {
-        switch (num)
-        {
+        switch (num) {
         case 0:
             return "balas";
             break;
